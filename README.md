@@ -95,7 +95,7 @@ Sensor_4_20mA sensor;
 
 void setup() {
     sensor
-        .withADS1015(100)
+        .withADS1015(100, ADS1015_CONFIG_PGA_1, 199, 1004, ADS1015_ADDRESS_GND, Wire)
         .withConfig(sensorConfig, NUM_SENSOR_CONFIG)
         .init();
 }
@@ -120,12 +120,37 @@ In this example there's a config structure, which is discussed below. The other 
 
 ```cpp
 sensor
-    .withADS1015(100)
+    .withADS1015(100, ADS1015_CONFIG_PGA_1, 199, 1004, ADS1015_ADDRESS_GND, Wire)
     .withConfig(sensorConfig, NUM_SENSOR_CONFIG)
     .init();
 ```
 
-Since the ADC1015 ADCs don't have pin numbers (in the analogRead() sense), we assign them virtual pin numbers, which typically start at 100. They don't need to be contiguous. Each ADS1015 has 4 ADCs, so it always uses 4 virtual pins, even if you don't use all 4 ADCs. An 8-channel ADC would use 8. The value 100 is the virtual pin number to start with for that ADC.
+The parameters to `withADS1015()` are:
+
+- Since the ADC1015 ADCs don't have pin numbers (in the analogRead() sense), we assign them virtual pin numbers, which typically start at 100. They don't need to be contiguous. Each ADS1015 has 4 ADCs, so it always uses 4 virtual pins, even if you don't use all 4 ADCs. An 8-channel ADC would use 8. The value 100 is the virtual pin number to start with for that ADC.
+
+- `ADS1015_CONFIG_PGA_1` is the gain setting for the ADC for a 100 ohm sense resistor. 
+
+- 199 is the ADC value for 4 mA (`adcValue4mA`) when using a 100 ohm sense resistor. See table below.
+
+- 1004 is the ADC value for 20 mA (`adcValue20mA`).
+
+| Parameter | 10 ohm | 100 ohm |
+| :--- | :--- | :--- |
+| `gain` | `ADS1015_CONFIG_PGA_16` | `ADS1015_CONFIG_PGA_1` |
+| `adcValue4mA` | 318 | 199 |
+| `adcValue20mA` | 1602 | 1004 |
+
+
+For a 10 ohm sense resistor:
+
+```cpp
+sensor
+    .withADS1015(100, ADS1015_CONFIG_PGA_16, 318, 1602, ADS1015_ADDRESS_GND, Wire)
+    .withConfig(sensorConfig, NUM_SENSOR_CONFIG)
+    .init();
+```
+
 
 You can add multiple I2C ADC easily, as well, by specifying different virtual pin start numbers and I2C addresses:
 
@@ -233,6 +258,12 @@ void locationGenerationCallback(JSONWriter &writer, LocationPoint &point, const 
 
 
 ## Revision History
+
+### 0.0.2 (2020-08-11)
+
+- Added support for setting the adcValue4mA and adcValue20mA without modifying the library
+- Added support for adjusting the gain on the ADS1015 without modifying the library
+- Added documentation for using 10 ohm sense resistors on the ADS1015.
 
 ### 0.0.1 (2020-08-08)
 

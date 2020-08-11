@@ -83,8 +83,8 @@ SensorValue Sensor_4_20mA::readPinValue(int pin) {
 
     return result;    
 }
-Sensor_4_20mA &Sensor_4_20mA::withNativeADC() {
-    virtualPins.push_back(new SensorVirtualPinNative());
+Sensor_4_20mA &Sensor_4_20mA::withNativeADC(int adcValue4mA, int adcValue20mA) {
+    virtualPins.push_back(new SensorVirtualPinNative(adcValue4mA, adcValue20mA));
     return *this;
 }
 
@@ -119,7 +119,7 @@ int SensorVirtualPinBase::convert_mA(int adcValue) {
 }
 
 
-SensorVirtualPinNative::SensorVirtualPinNative() : SensorVirtualPinBase(0, 100, 491, 2469) {
+SensorVirtualPinNative::SensorVirtualPinNative(int adcValue4mA, int adcValue20mA) : SensorVirtualPinBase(0, 100, adcValue4mA, adcValue20mA) {
 
 }
 SensorVirtualPinNative::~SensorVirtualPinNative() {

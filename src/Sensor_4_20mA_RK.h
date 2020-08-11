@@ -160,7 +160,7 @@ public:
  */
 class SensorVirtualPinNative : public SensorVirtualPinBase {
 public:
-    SensorVirtualPinNative();
+    SensorVirtualPinNative(int adcValue4mA, int adcValue20mA);
     virtual ~SensorVirtualPinNative();
 
     virtual int readPin(int virtualPin);
@@ -172,18 +172,22 @@ public:
  */
 class SensorVirtualPinADS1015 : public SensorVirtualPinBase {
 public:
-    SensorVirtualPinADS1015(int virtualPinStart, uint8_t i2cAddr, TwoWire &wire = Wire) : 
-        SensorVirtualPinBase(virtualPinStart, 4, 199, 1004), i2cAddr(i2cAddr), wire(wire) {};
+    SensorVirtualPinADS1015(int virtualPinStart, uint16_t gain, int adcValue4mA, int adcValue20mA, uint8_t i2cAddr, TwoWire &wire = Wire) : 
+        SensorVirtualPinBase(virtualPinStart, 4, adcValue4mA, adcValue20mA), gain(gain), i2cAddr(i2cAddr), wire(wire) {};
     virtual ~SensorVirtualPinADS1015() {};
 
     virtual bool init() {
         bool bResult = adc.begin(i2cAddr, wire);
         if (bResult) {
-            // Set gain to PGA1: FSR = +/-4.096V
+            // For 100 ohm sense resistor:
+            // Set gain to ADS1015_CONFIG_PGA_1: FSR = +/-4.096V
             // This parameter expresses the full-scale range of the ADC scaling. 
             // Do not apply more than VDD + 0.3 V to the analog inputs of the device.
             // (This means 3.3V will be approximately 1652)
-            adc.setGain(ADS1015_CONFIG_PGA_1);        
+
+            // For 10 ohm sense resistor:
+            // Set the gain to ADS1015_CONFIG_PGA_16 +/- 0.256v
+            adc.setGain(gain);        
         }
         else {
             Log.error("ADC initialization failed");
@@ -196,6 +200,7 @@ public:
     };
 
 protected:
+    uint16_t gain;
     uint8_t i2cAddr;
     TwoWire &wire;
     ADS1015 adc;
@@ -273,6 +278,15 @@ public:
      * 
      * @param virtualPinStart The virtual pin number to start at. Typically 100.
      * 
+     * @param gain The gain to set on the ADS1015. Typically ADS1015_CONFIG_PGA_1 for a
+     * 100 ohm sense resistor or ADS1015_CONFIG_PGA_16 for a 10 ohm sense resistor
+     * 
+     * @param adcValue4mA The ADC value that corresponds to 4mA. Depends on the gain
+     * and sense resistor.
+     * 
+     * @param adcValue20mA The ADC value that corresponds to 20mA. Depends on the gain
+     * and sense resistor.
+     * 
      * @param i2cAddr The I2C address of the chip. Typically ADS1015_ADDRESS_GND (0x44).
      * 
      * @param wire The interface, typically Wire, except on the Tracker One/Tracker Carrier Board,
@@ -283,9 +297,13 @@ public:
      * 
      * #include "Sparkfun_ADS1015_Arduino_Library.h"
      * #include "Sensor_4_20mA_RK.h"
+     * 
+     * Typical values for adcValue4mA and adcValue20mA:
+     * 100 ohm sense resistor: 199, 1004 
+     * 10 ohm sense resistor: 318, 1602
      */
-    Sensor_4_20mA &withADS1015(int virtualPinStart, uint8_t i2cAddr = ADS1015_ADDRESS_GND, TwoWire &wire = Wire) {
-        virtualPins.push_back(new SensorVirtualPinADS1015(virtualPinStart, i2cAddr, wire));
+    Sensor_4_20mA &withADS1015(int virtualPinStart, uint16_t gain, int adcValue4mA = 199, int adcValue20mA = 1004, uint8_t i2cAddr = ADS1015_ADDRESS_GND, TwoWire &wire = Wire) {
+        virtualPins.push_back(new SensorVirtualPinADS1015(virtualPinStart, gain, adcValue4mA, adcValue20mA, i2cAddr, wire));
         return *this;
     }
 #endif /* HAS_ADS1015 */
@@ -295,7 +313,7 @@ public:
      * 
      * This supports analogRead() of built-in ADCs (12-bit, 0-4095, 3.3V max).
      */
-    Sensor_4_20mA &withNativeADC();
+    Sensor_4_20mA &withNativeADC(int adcValue4mA = 491, int adcValue20mA = 2469);
 
     /**
      * @brief Specify the configuration for sensors, including the JSON keys and value mapping
